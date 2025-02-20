@@ -1,0 +1,41 @@
+// Searches Google Calendar for events that include "Out of Office" in the title and is owned by a specific user
+
+// Define your variables at the top of the script
+var CALENDAR_ID = "calendar@example.com"; // Or use a specific calendar ID
+var TARGET_OWNER_EMAIL = "target-calendar@example.com"; // The target calendar/email for the new event
+
+function transferPTOEventOwnership() {
+  // Use the variables defined above
+  var calendar = CalendarApp.getCalendarById(CALENDAR_ID);
+  
+  var now = new Date();
+  var futureEvents = calendar.getEvents(now, new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)); // Next 90 days
+  
+  for (var i = 0; i < futureEvents.length; i++) {
+    var event = futureEvents[i];
+    Logger.log("Checking event: " + event.getTitle());
+    Logger.log("Event creators: " + event.getCreators());
+    
+    // Check if the event is "Out of Office" and is owned by event-owner@example.com
+    if (event.getTitle().includes("Out of Office") && event.getCreators().includes("event-owner@example.com")) {
+      var guests = event.getGuestList().map(function(guest) {
+        return guest.getEmail();
+      });
+      
+      // Use the variable for the target owner's calendar
+      var targetCalendar = CalendarApp.getCalendarById(TARGET_OWNER_EMAIL);
+      if (targetCalendar) {
+        var newEvent = targetCalendar.createEvent(
+          event.getTitle(),
+          event.getStartTime(),
+          event.getEndTime(),
+          { guests: guests.join(","), sendInvites: true }
+        );
+        event.deleteEvent();
+        Logger.log("Transferred event: " + event.getTitle());
+      } else {
+        Logger.log("Target calendar not found for " + TARGET_OWNER_EMAIL);
+      }
+    }
+  }
+}
